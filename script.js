@@ -5,7 +5,6 @@ const plantData = [
   "Lilac", "Nectarine", "Serenity", "Guanabana", "Burning Bud", "Cacao", "Avocado",
   "Sweet Root", "Solarmelon", "Wiggly Leaf", "Glow Bulb", "Frost Bloom"
 ];
-
 const canvas = document.getElementById("plotCanvas");
 const ctx = canvas.getContext("2d");
 const darkToggle = document.querySelector(".dark-toggle");
