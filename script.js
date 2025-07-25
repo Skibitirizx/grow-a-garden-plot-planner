@@ -11,9 +11,10 @@ const ctx = canvas.getContext("2d");
 const darkToggle = document.querySelector(".dark-toggle");
 const body = document.body;
 const searchInput = document.getElementById("plantSearch");
-const plantGrid = document.getElementById("plantGrid");
+const suggestionsBox = document.getElementById("suggestions");
 const plantListDiv = document.getElementById("plantList");
 
+// Set canvas size and background
 const bgImage = new Image();
 bgImage.src = "garden-layout.png";
 bgImage.onload = () => {
@@ -22,34 +23,32 @@ bgImage.onload = () => {
   ctx.drawImage(bgImage, 0, 0);
 };
 
+// Dark mode toggle
 darkToggle.addEventListener("click", () => {
   body.classList.toggle("dark-mode");
 });
 
-// Display filter-style plant selection (not floating suggestions)
-function updatePlantGrid(query = "") {
-  plantGrid.innerHTML = "";
-  const filtered = plantData.filter(p => p.toLowerCase().includes(query.toLowerCase()));
-
-  filtered.forEach(plant => {
-    const plantDiv = document.createElement("div");
-    plantDiv.className = "plant-grid-item";
-    plantDiv.textContent = plant;
-    plantDiv.onclick = () => {
-      searchInput.value = plant;
-    };
-    plantGrid.appendChild(plantDiv);
-  });
-}
-
+// Live search
 searchInput.addEventListener("input", () => {
-  updatePlantGrid(searchInput.value);
+  const query = searchInput.value.toLowerCase();
+  suggestionsBox.innerHTML = "";
+
+  if (!query) return;
+
+  const matches = plantData.filter(p => p.toLowerCase().includes(query));
+  matches.forEach(match => {
+    const div = document.createElement("div");
+    div.className = "suggestion";
+    div.textContent = match;
+    div.onclick = () => {
+      searchInput.value = match;
+      suggestionsBox.innerHTML = "";
+    };
+    suggestionsBox.appendChild(div);
+  });
 });
 
-// Initial grid render
-updatePlantGrid();
-
-// Quantity inputs for AI layout logic
+// Populate plant list with quantity inputs
 function populatePlantList() {
   plantListDiv.innerHTML = "";
   plantData.forEach(plant => {
@@ -71,6 +70,7 @@ function populatePlantList() {
   });
 }
 
+// Placeholder layout logic
 function generateLayout() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImage, 0, 0);
