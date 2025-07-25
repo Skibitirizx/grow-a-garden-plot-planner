@@ -30,7 +30,7 @@ function hexToRgb(hex) {
 const allowedRgb = hexToRgb(allowedHex);
 const forbiddenRgb = hexToRgb(forbiddenHex);
 
-function colorMatch(r1,g1,b1, r2,g2,b2, tolerance=10) {
+function colorMatch(r1, g1, b1, r2, g2, b2, tolerance = 10) {
   return (
     Math.abs(r1 - r2) <= tolerance &&
     Math.abs(g1 - g2) <= tolerance &&
@@ -38,23 +38,21 @@ function colorMatch(r1,g1,b1, r2,g2,b2, tolerance=10) {
   );
 }
 
-function neighborsForbidden(x, y, imageData, width, height, forbiddenRgb, tolerance=10) {
+// ⛔️ Increase forbidden padding radius (3px or more)
+function nearForbidden(x, y, imageData, width, height, forbiddenRgb, padding = 3) {
   const data = imageData.data;
-  const neighbors = [
-    [-1,-1], [0,-1], [1,-1],
-    [-1, 0],         [1, 0],
-    [-1, 1], [0, 1], [1, 1],
-  ];
-  for (let [dx, dy] of neighbors) {
-    const nx = x + dx;
-    const ny = y + dy;
-    if(nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-    const idx = (ny * width + nx) * 4;
-    const r = data[idx];
-    const g = data[idx+1];
-    const b = data[idx+2];
-    if(colorMatch(r, g, b, forbiddenRgb.r, forbiddenRgb.g, forbiddenRgb.b, tolerance)) {
-      return true;
+  for (let dy = -padding; dy <= padding; dy++) {
+    for (let dx = -padding; dx <= padding; dx++) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      const idx = (ny * width + nx) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      if (colorMatch(r, g, b, forbiddenRgb.r, forbiddenRgb.g, forbiddenRgb.b)) {
+        return true;
+      }
     }
   }
   return false;
@@ -68,18 +66,18 @@ bgImage.onload = () => {
   ctx.drawImage(bgImage, 0, 0);
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
   allowedPositions = [];
-  for(let y=0; y<canvas.height; y++) {
-    for(let x=0; x<canvas.width; x++) {
+
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
       const idx = (y * canvas.width + x) * 4;
       const r = imageData.data[idx];
-      const g = imageData.data[idx+1];
-      const b = imageData.data[idx+2];
+      const g = imageData.data[idx + 1];
+      const b = imageData.data[idx + 2];
 
-      if(colorMatch(r, g, b, allowedRgb.r, allowedRgb.g, allowedRgb.b)) {
-        if(!neighborsForbidden(x, y, imageData, canvas.width, canvas.height, forbiddenRgb)) {
-          allowedPositions.push({x, y});
+      if (colorMatch(r, g, b, allowedRgb.r, allowedRgb.g, allowedRgb.b)) {
+        if (!nearForbidden(x, y, imageData, canvas.width, canvas.height, forbiddenRgb, 3)) {
+          allowedPositions.push({ x, y });
         }
       }
     }
@@ -130,25 +128,23 @@ function populatePlantList() {
   });
 }
 
-// Score a point based on surroundings (open radius, edge proximity)
+// 🧠 AI logic: Score placement quality
 function scorePosition(pos, others, width, height) {
   let score = 0;
-
-  // Prefer center-ish placements
   const dx = pos.x - width / 2;
   const dy = pos.y - height / 2;
-  score -= Math.sqrt(dx*dx + dy*dy) * 0.05;
+  score -= Math.sqrt(dx * dx + dy * dy) * 0.05;
 
-  // Prefer positions far from other seeds
   for (let o of others) {
-    const dist = Math.sqrt((pos.x - o.x)**2 + (pos.y - o.y)**2);
-    if (dist < 30) score -= 100; // too close
+    const dist = Math.sqrt((pos.x - o.x) ** 2 + (pos.y - o.y) ** 2);
+    if (dist < 35) score -= 999; // too close
     else score += dist * 0.1;
   }
 
   return score;
 }
 
+// 👨‍🌾 Generate AI-optimized layout
 function generateLayout() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImage, 0, 0);
@@ -164,7 +160,6 @@ function generateLayout() {
     const plant = input.dataset.plant;
     let bestCluster = [];
 
-    // Try 50 different starting positions and pick best scoring cluster
     for (let trial = 0; trial < 50; trial++) {
       const center = available[Math.floor(Math.random() * available.length)];
       const cluster = [];
@@ -172,10 +167,11 @@ function generateLayout() {
       for (let p of available) {
         if (cluster.length >= qty) break;
         const dist = Math.hypot(center.x - p.x, center.y - p.y);
-        if (dist <= 40) cluster.push(p);
+        if (dist <= 60 && cluster.every(c => Math.hypot(c.x - p.x, c.y - p.y) > 35)) {
+          cluster.push(p);
+        }
       }
 
-      // Score the entire cluster as a group
       const totalScore = cluster.reduce((sum, pt) => sum + scorePosition(pt, placed, canvas.width, canvas.height), 0);
       if (bestCluster.length === 0 || totalScore > bestCluster.score) {
         bestCluster = cluster.slice();
