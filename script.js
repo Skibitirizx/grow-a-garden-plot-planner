@@ -3,9 +3,10 @@ const plantData = [
   "Sweet Root", "Solarmelon", "Wiggly Leaf", "Glow Bulb", "Frost Bloom"
 ];
 
-const plantListDiv = document.getElementById("plantList");
 const canvas = document.getElementById("plotCanvas");
 const ctx = canvas.getContext("2d");
+const plantListDiv = document.getElementById("plantList");
+
 let backgroundImage = null;
 let plotBoxes = [];
 
@@ -18,10 +19,11 @@ window.onload = () => {
     ctx.drawImage(img, 0, 0);
     backgroundImage = img;
 
-    detectPlots(); // find plot areas automatically
+    detectPlots(); // Find plot areas automatically
   };
 };
 
+// Build sidebar input list
 plantData.forEach(plant => {
   const div = document.createElement("div");
   div.className = "plant-item";
@@ -40,11 +42,10 @@ plantData.forEach(plant => {
   plantListDiv.appendChild(div);
 });
 
-// Detect brown rectangles that represent soil plots
+// Basic soil plot detection (brown areas)
 function detectPlots() {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
-
   const visited = new Set();
 
   for (let y = 0; y < canvas.height; y += 5) {
@@ -52,28 +53,27 @@ function detectPlots() {
       const index = (y * canvas.width + x) * 4;
       const r = data[index], g = data[index + 1], b = data[index + 2];
 
-      if (r > 100 && r < 180 && g > 60 && g < 130 && b < 80) {
-        const key = ${x},${y};
-        if (!visited.has(key)) {
-          const box = floodFill(data, x, y, canvas.width, canvas.height, visited);
-          if (box.width > 50 && box.height > 30) {  // basic size filter
-            plotBoxes.push(box);
-          }
+      const isBrown = r > 100 && r < 180 && g > 60 && g < 130 && b < 80;
+      const key = `${x},${y}`;
+      if (isBrown && !visited.has(key)) {
+        const box = floodFill(data, x, y, canvas.width, canvas.height, visited);
+        if (box.width > 50 && box.height > 30) {
+          plotBoxes.push(box);
         }
       }
     }
   }
 }
 
-// Find contiguous brown regions (plots)
+// Flood-fill plot region to get bounding box
 function floodFill(data, startX, startY, width, height, visited) {
   const stack = [{ x: startX, y: startY }];
   let minX = startX, minY = startY, maxX = startX, maxY = startY;
 
   while (stack.length > 0) {
     const { x, y } = stack.pop();
-    const key = ${x},${y};
-    if (visited.has(key)) continue;
+    const key = `${x},${y}`;
+    if (visited.has(key) || x < 0 || y < 0 || x >= width || y >= height) continue;
     visited.add(key);
 
     const idx = (y * width + x) * 4;
@@ -87,7 +87,6 @@ function floodFill(data, startX, startY, width, height, visited) {
     maxX = Math.max(maxX, x);
     maxY = Math.max(maxY, y);
 
-    // Scan neighbors
     stack.push({ x: x + 1, y });
     stack.push({ x: x - 1, y });
     stack.push({ x, y: y + 1 });
@@ -102,6 +101,7 @@ function floodFill(data, startX, startY, width, height, visited) {
   };
 }
 
+// Distribute plant labels
 function generateLayout() {
   if (!backgroundImage) {
     alert("Background image not loaded.");
@@ -127,10 +127,9 @@ function generateLayout() {
     return;
   }
 
-  // Distribute seeds across plots
   let seedIndex = 0;
   for (const plot of plotBoxes) {
-    const maxSeedsInPlot = Math.floor(plot.width * plot.height / 2500); // adjustable density
+    const maxSeedsInPlot = Math.floor(plot.width * plot.height / 2500); // Density control
     for (let i = 0; i < maxSeedsInPlot && seedIndex < seeds.length; i++) {
       const plant = seeds[seedIndex++];
       const randX = plot.x + 20 + Math.random() * (plot.width - 40);
