@@ -1,145 +1,125 @@
 const plantData = [
-  "Spiked Mango", "Burning Bud", "Cacao", "Avocado",
-  "Sweet Root", "Solarmelon", "Wiggly Leaf", "Glow Bulb", "Frost Bloom"
+  { name: "Bone Blossom", image: "images/bone_blossom.png" },
+  { name: "Candy Blossom", image: "images/candy_blossom.png" },
+  { name: "Maple Apple", image: "images/maple_apple.png" },
+  { name: "Spiked Mango", image: "images/spiked_mango.png" },
+  { name: "Moon Mango", image: "images/moon_mango.png" },
+  { name: "Dragon Pepper", image: "images/dragon_pepper.png" },
+  { name: "Fossilight Fruit", image: "images/fossilight_fruit.png" },
+  { name: "Elephant Ears", image: "images/elephant_ears.png" },
+  { name: "Sugar Apple", image: "images/sugar_apple.png" },
+  { name: "Giant Pinecone", image: "images/giant_pinecone.png" },
+  { name: "Traveler's Fruit", image: "images/travelers_fruit.png" },
+  { name: "Moon Blossom", image: "images/moon_blossom.png" },
+  { name: "Hive Fruit", image: "images/hive_fruit.png" },
+  { name: "Beanstalk", image: "images/beanstalk.png" },
+  { name: "Lily of the Valley", image: "images/lily_valley.png" },
+  { name: "Lilac", image: "images/lilac.png" },
+  { name: "Nectarine", image: "images/nectarine.png" },
+  { name: "Serenity", image: "images/serenity.png" },
+  { name: "Guanabana", image: "images/guanabana.png" },
+  { name: "Burning Bud", image: "images/burning_bud.png" },
+  { name: "Cacao", image: "images/cacao.png" },
+  { name: "Avocado", image: "images/avocado.png" },
+  { name: "Sweet Root", image: "images/sweet_root.png" },
+  { name: "Solarmelon", image: "images/solarmelon.png" },
+  { name: "Wiggly Leaf", image: "images/wiggly_leaf.png" },
+  { name: "Glow Bulb", image: "images/glow_bulb.png" },
+  { name: "Frost Bloom", image: "images/frost_bloom.png" }
 ];
 
 const canvas = document.getElementById("plotCanvas");
 const ctx = canvas.getContext("2d");
+const darkToggle = document.querySelector(".dark-toggle");
+const body = document.body;
+const searchInput = document.getElementById("plantSearch");
+const suggestionsBox = document.getElementById("suggestions");
 const plantListDiv = document.getElementById("plantList");
 
-let backgroundImage = null;
-let plotBoxes = [];
-
-window.onload = () => {
-  const img = new Image();
-  img.src = 'garden-layout.png';
-  img.onload = () => {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-    backgroundImage = img;
-
-    detectPlots(); // Find plot areas automatically
-  };
+const bgImage = new Image();
+bgImage.src = "garden-layout.png";
+bgImage.onload = () => {
+  canvas.width = bgImage.width;
+  canvas.height = bgImage.height;
+  ctx.drawImage(bgImage, 0, 0);
 };
 
-// Build sidebar input list
-plantData.forEach(plant => {
-  const div = document.createElement("div");
-  div.className = "plant-item";
-
-  const input = document.createElement("input");
-  input.type = "number";
-  input.min = 0;
-  input.value = 0;
-  input.dataset.name = plant;
-
-  const label = document.createElement("label");
-  label.textContent = plant;
-
-  div.appendChild(input);
-  div.appendChild(label);
-  plantListDiv.appendChild(div);
+darkToggle.addEventListener("click", () => {
+  body.classList.toggle("dark-mode");
 });
 
-// Basic soil plot detection (brown areas)
-function detectPlots() {
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const visited = new Set();
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.toLowerCase();
+  suggestionsBox.innerHTML = "";
 
-  for (let y = 0; y < canvas.height; y += 5) {
-    for (let x = 0; x < canvas.width; x += 5) {
-      const index = (y * canvas.width + x) * 4;
-      const r = data[index], g = data[index + 1], b = data[index + 2];
+  if (!query) return;
 
-      const isBrown = r > 100 && r < 180 && g > 60 && g < 130 && b < 80;
-      const key = `${x},${y}`;
-      if (isBrown && !visited.has(key)) {
-        const box = floodFill(data, x, y, canvas.width, canvas.height, visited);
-        if (box.width > 50 && box.height > 30) {
-          plotBoxes.push(box);
-        }
-      }
-    }
-  }
-}
-
-// Flood-fill plot region to get bounding box
-function floodFill(data, startX, startY, width, height, visited) {
-  const stack = [{ x: startX, y: startY }];
-  let minX = startX, minY = startY, maxX = startX, maxY = startY;
-
-  while (stack.length > 0) {
-    const { x, y } = stack.pop();
-    const key = `${x},${y}`;
-    if (visited.has(key) || x < 0 || y < 0 || x >= width || y >= height) continue;
-    visited.add(key);
-
-    const idx = (y * width + x) * 4;
-    const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-
-    const isBrown = r > 100 && r < 180 && g > 60 && g < 130 && b < 80;
-    if (!isBrown) continue;
-
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x);
-    maxY = Math.max(maxY, y);
-
-    stack.push({ x: x + 1, y });
-    stack.push({ x: x - 1, y });
-    stack.push({ x, y: y + 1 });
-    stack.push({ x, y: y - 1 });
-  }
-
-  return {
-    x: minX,
-    y: minY,
-    width: maxX - minX,
-    height: maxY - minY
-  };
-}
-
-// Distribute plant labels
-function generateLayout() {
-  if (!backgroundImage) {
-    alert("Background image not loaded.");
-    return;
-  }
-
-  ctx.drawImage(backgroundImage, 0, 0);
-
-  const inputs = document.querySelectorAll(".plant-item input");
-  const seeds = [];
-
-  inputs.forEach(input => {
-    const count = parseInt(input.value);
-    if (count > 0) {
-      for (let i = 0; i < count; i++) {
-        seeds.push(input.dataset.name);
-      }
-    }
+  const matches = plantData.filter(p => p.name.toLowerCase().includes(query));
+  matches.forEach(match => {
+    const div = document.createElement("div");
+    div.className = "suggestion";
+    div.textContent = match.name;
+    div.onclick = () => {
+      searchInput.value = match.name;
+      suggestionsBox.innerHTML = "";
+    };
+    suggestionsBox.appendChild(div);
   });
+});
 
-  if (plotBoxes.length === 0) {
-    alert("No plot areas found.");
-    return;
-  }
+function populatePlantList() {
+  plantListDiv.innerHTML = "";
+  plantData.forEach(plant => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "plant-item";
 
-  let seedIndex = 0;
-  for (const plot of plotBoxes) {
-    const maxSeedsInPlot = Math.floor(plot.width * plot.height / 2500); // Density control
-    for (let i = 0; i < maxSeedsInPlot && seedIndex < seeds.length; i++) {
-      const plant = seeds[seedIndex++];
-      const randX = plot.x + 20 + Math.random() * (plot.width - 40);
-      const randY = plot.y + 20 + Math.random() * (plot.height - 40);
+    const img = document.createElement("img");
+    img.src = plant.image;
+    img.alt = plant.name;
+    img.className = "plant-icon";
 
-      ctx.fillStyle = "rgba(0, 100, 0, 0.75)";
-      ctx.font = "14px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(plant, randX, randY);
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.value = "0";
+    input.dataset.plant = plant.name;
+
+    const label = document.createElement("label");
+    label.textContent = plant.name;
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(input);
+    wrapper.appendChild(label);
+    plantListDiv.appendChild(wrapper);
+  });
+}
+
+function generateLayout() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bgImage, 0, 0);
+
+  const inputs = document.querySelectorAll(".plant-item input[type='number']");
+  let count = 0;
+
+  for (let input of inputs) {
+    const quantity = parseInt(input.value);
+    if (isNaN(quantity) || quantity <= 0) continue;
+
+    for (let i = 0; i < quantity; i++) {
+      const x = 50 + (count * 60) % (canvas.width - 100);
+      const y = 100 + Math.floor(count * 60 / (canvas.width - 100)) * 50;
+
+      ctx.fillStyle = "rgba(80, 172, 84, 0.85)";
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "black";
+      ctx.font = "12px sans-serif";
+      ctx.fillText(input.dataset.plant.slice(0, 3), x - 10, y - 12);
+      count++;
     }
-    if (seedIndex >= seeds.length) break;
   }
 }
+
+populatePlantList();
