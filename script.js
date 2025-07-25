@@ -11,10 +11,9 @@ const ctx = canvas.getContext("2d");
 const darkToggle = document.querySelector(".dark-toggle");
 const body = document.body;
 const searchInput = document.getElementById("plantSearch");
-const suggestionsBox = document.getElementById("suggestions");
+const plantGrid = document.getElementById("plantGrid");
 const plantListDiv = document.getElementById("plantList");
 
-// Set canvas size and background
 const bgImage = new Image();
 bgImage.src = "garden-layout.png";
 bgImage.onload = () => {
@@ -23,32 +22,34 @@ bgImage.onload = () => {
   ctx.drawImage(bgImage, 0, 0);
 };
 
-// Dark mode toggle
 darkToggle.addEventListener("click", () => {
   body.classList.toggle("dark-mode");
 });
 
-// Live search
-searchInput.addEventListener("input", () => {
-  const query = searchInput.value.toLowerCase();
-  suggestionsBox.innerHTML = "";
+// Display filter-style plant selection (not floating suggestions)
+function updatePlantGrid(query = "") {
+  plantGrid.innerHTML = "";
+  const filtered = plantData.filter(p => p.toLowerCase().includes(query.toLowerCase()));
 
-  if (!query) return;
-
-  const matches = plantData.filter(p => p.toLowerCase().includes(query));
-  matches.forEach(match => {
-    const div = document.createElement("div");
-    div.className = "suggestion";
-    div.textContent = match;
-    div.onclick = () => {
-      searchInput.value = match;
-      suggestionsBox.innerHTML = "";
+  filtered.forEach(plant => {
+    const plantDiv = document.createElement("div");
+    plantDiv.className = "plant-grid-item";
+    plantDiv.textContent = plant;
+    plantDiv.onclick = () => {
+      searchInput.value = plant;
     };
-    suggestionsBox.appendChild(div);
+    plantGrid.appendChild(plantDiv);
   });
+}
+
+searchInput.addEventListener("input", () => {
+  updatePlantGrid(searchInput.value);
 });
 
-// Populate plant list with quantity inputs
+// Initial grid render
+updatePlantGrid();
+
+// Quantity inputs for AI layout logic
 function populatePlantList() {
   plantListDiv.innerHTML = "";
   plantData.forEach(plant => {
@@ -70,7 +71,6 @@ function populatePlantList() {
   });
 }
 
-// Placeholder layout logic
 function generateLayout() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImage, 0, 0);
