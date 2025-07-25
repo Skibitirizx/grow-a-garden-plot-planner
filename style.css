@@ -1,4 +1,4 @@
-
+/* Reset and base */
 * {
   box-sizing: border-box;
 }
@@ -33,7 +33,7 @@ h1 {
 }
 
 .sidebar {
-  flex: 0 0 390px;
+  flex: 0 0 390px; /* increased from 320px */
   padding: 2rem 1.5rem;
   background: #fafafa;
   display: flex;
@@ -84,17 +84,17 @@ h1 {
 .plant-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 16px; /* increased from 12px */
   max-height: 350px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: hidden; /* no horizontal scroll */
   word-break: break-word;
 }
 
 .plant-item {
   display: flex;
   align-items: center;
-  font-size: 1rem;
+  font-size: 1rem; /* increased from 0.9rem */
   color: #444;
   min-width: 0;
 }
@@ -149,12 +149,6 @@ canvas {
   object-fit: contain;
 }
 
-/* Highlighted plant result */
-.plant-item.highlighted {
-  background-color: #e6ffe6;
-  border-left: 4px solid #4caf50;
-}
-
 /* DARK MODE */
 body.dark-mode {
   background-color: #000;
@@ -198,11 +192,6 @@ body.dark-mode input[type="number"]:focus {
 
 body.dark-mode .plant-item {
   color: #ddd;
-}
-
-body.dark-mode .plant-item.highlighted {
-  background-color: #1a2a1a;
-  border-left-color: #6fff6f;
 }
 
 body.dark-mode .dark-toggle {

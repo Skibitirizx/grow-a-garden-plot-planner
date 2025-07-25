@@ -5,15 +5,16 @@ const plantData = [
   "Lilac", "Nectarine", "Serenity", "Guanabana", "Burning Bud", "Cacao", "Avocado",
   "Sweet Root", "Solarmelon", "Wiggly Leaf", "Glow Bulb", "Frost Bloom"
 ];
+
 const canvas = document.getElementById("plotCanvas");
 const ctx = canvas.getContext("2d");
 const darkToggle = document.querySelector(".dark-toggle");
 const body = document.body;
 const searchInput = document.getElementById("plantSearch");
-const searchBtn = document.getElementById("searchBtn");
-const notFoundMsg = document.getElementById("notFoundMsg");
+const suggestionsBox = document.getElementById("suggestions");
 const plantListDiv = document.getElementById("plantList");
 
+// Set canvas size and background
 const bgImage = new Image();
 bgImage.src = "garden-layout.png";
 bgImage.onload = () => {
@@ -22,36 +23,32 @@ bgImage.onload = () => {
   ctx.drawImage(bgImage, 0, 0);
 };
 
+// Dark mode toggle
 darkToggle.addEventListener("click", () => {
   body.classList.toggle("dark-mode");
 });
 
-searchBtn.addEventListener("click", () => {
-  const query = searchInput.value.trim().toLowerCase();
-  notFoundMsg.style.display = "none";
-
-  document.querySelectorAll(".plant-item").forEach(item => {
-    item.classList.remove("highlighted");
-  });
+// Live search
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.toLowerCase();
+  suggestionsBox.innerHTML = "";
 
   if (!query) return;
 
   const matches = plantData.filter(p => p.toLowerCase().includes(query));
-  if (matches.length === 0) {
-    notFoundMsg.style.display = "block";
-    return;
-  }
-
-  matches.forEach(name => {
-    const input = document.querySelector(`input[data-plant="${name}"]`);
-    if (input) {
-      const wrapper = input.closest(".plant-item");
-      wrapper.classList.add("highlighted");
-      wrapper.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+  matches.forEach(match => {
+    const div = document.createElement("div");
+    div.className = "suggestion";
+    div.textContent = match;
+    div.onclick = () => {
+      searchInput.value = match;
+      suggestionsBox.innerHTML = "";
+    };
+    suggestionsBox.appendChild(div);
   });
 });
 
+// Populate plant list with quantity inputs
 function populatePlantList() {
   plantListDiv.innerHTML = "";
   plantData.forEach(plant => {
@@ -73,6 +70,7 @@ function populatePlantList() {
   });
 }
 
+// Placeholder layout logic
 function generateLayout() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImage, 0, 0);
