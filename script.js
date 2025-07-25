@@ -14,10 +14,11 @@ const searchInput = document.getElementById("plantSearch");
 const suggestionsBox = document.getElementById("suggestions");
 const plantListDiv = document.getElementById("plantList");
 
-const targetHex = "#ab6b3f"; // allowed hex color for seeds placement
-let allowedPositions = []; // to store x,y of allowed pixels
+const allowedHex = "#ab6b3f";
+const forbiddenHex = "#7a4427";
 
-// Convert hex to RGB object for comparison
+let allowedPositions = [];
+
 function hexToRgb(hex) {
   const bigint = parseInt(hex.replace("#",""), 16);
   return {
@@ -26,9 +27,9 @@ function hexToRgb(hex) {
     b: bigint & 255,
   };
 }
-const targetRgb = hexToRgb(targetHex);
+const allowedRgb = hexToRgb(allowedHex);
+const forbiddenRgb = hexToRgb(forbiddenHex);
 
-// Check if two colors are equal within a tolerance (to allow slight differences)
 function colorMatch(r1,g1,b1, r2,g2,b2, tolerance=10) {
   return (
     Math.abs(r1 - r2) <= tolerance &&
@@ -37,7 +38,29 @@ function colorMatch(r1,g1,b1, r2,g2,b2, tolerance=10) {
   );
 }
 
-// Set canvas size and background, then scan pixels for allowed seed spots
+// Check if a pixel at (x,y) neighbors a forbidden color pixel
+function neighborsForbidden(x, y, imageData, width, height, forbiddenRgb, tolerance=10) {
+  const data = imageData.data;
+  const neighbors = [
+    [-1,-1], [0,-1], [1,-1],
+    [-1, 0],         [1, 0],
+    [-1, 1], [0, 1], [1, 1],
+  ];
+  for (let [dx, dy] of neighbors) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if(nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+    const idx = (ny * width + nx) * 4;
+    const r = data[idx];
+    const g = data[idx+1];
+    const b = data[idx+2];
+    if(colorMatch(r, g, b, forbiddenRgb.r, forbiddenRgb.g, forbiddenRgb.b, tolerance)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const bgImage = new Image();
 bgImage.src = "garden-layout.png";
 bgImage.onload = () => {
@@ -45,30 +68,29 @@ bgImage.onload = () => {
   canvas.height = bgImage.height;
   ctx.drawImage(bgImage, 0, 0);
 
-  // Scan image data for allowed hex color pixels
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
 
   allowedPositions = [];
   for(let y=0; y<canvas.height; y++) {
     for(let x=0; x<canvas.width; x++) {
       const idx = (y * canvas.width + x) * 4;
-      const r = data[idx];
-      const g = data[idx+1];
-      const b = data[idx+2];
-      if(colorMatch(r,g,b, targetRgb.r, targetRgb.g, targetRgb.b)) {
-        allowedPositions.push({x, y});
+      const r = imageData.data[idx];
+      const g = imageData.data[idx+1];
+      const b = imageData.data[idx+2];
+
+      if(colorMatch(r, g, b, allowedRgb.r, allowedRgb.g, allowedRgb.b)) {
+        if(!neighborsForbidden(x, y, imageData, canvas.width, canvas.height, forbiddenRgb)) {
+          allowedPositions.push({x, y});
+        }
       }
     }
   }
 };
 
-// Dark mode toggle
 darkToggle.addEventListener("click", () => {
   body.classList.toggle("dark-mode");
 });
 
-// Live search
 searchInput.addEventListener("input", () => {
   const query = searchInput.value.toLowerCase();
   suggestionsBox.innerHTML = "";
@@ -88,7 +110,6 @@ searchInput.addEventListener("input", () => {
   });
 });
 
-// Populate plant list with quantity inputs
 function populatePlantList() {
   plantListDiv.innerHTML = "";
   plantData.forEach(plant => {
@@ -110,46 +131,82 @@ function populatePlantList() {
   });
 }
 
-// Generate layout with seed placement ONLY on allowed positions (#ab6b3f)
+// Utility: find cluster positions near a given center (x,y)
+function getClusterPositions(center, availablePositions, quantity, radius = 20) {
+  const cluster = [];
+
+  // Sort available positions by distance to center
+  availablePositions.sort((a,b) => {
+    const da = (a.x - center.x)**2 + (a.y - center.y)**2;
+    const db = (b.x - center.x)**2 + (b.y - center.y)**2;
+    return da - db;
+  });
+
+  for (let pos of availablePositions) {
+    if(cluster.length >= quantity) break;
+
+    // Check if pos is within radius
+    const distSq = (pos.x - center.x)**2 + (pos.y - center.y)**2;
+    if(distSq <= radius*radius) {
+      cluster.push(pos);
+    }
+  }
+
+  // If cluster is smaller than quantity, fill remaining anywhere available
+  if(cluster.length < quantity) {
+    for(let pos of availablePositions) {
+      if(cluster.length >= quantity) break;
+      if(!cluster.includes(pos)) {
+        cluster.push(pos);
+      }
+    }
+  }
+
+  return cluster;
+}
+
 function generateLayout() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImage, 0, 0);
 
   const inputs = document.querySelectorAll(".plant-item input[type='number']");
-  let count = 0;
 
-  // Make a copy of allowedPositions so we can remove used spots
+  // Copy allowed positions so we remove used positions as we go
   let availablePositions = allowedPositions.slice();
 
-  for (let input of inputs) {
+  for(let input of inputs) {
     const quantity = parseInt(input.value);
-    if (isNaN(quantity) || quantity <= 0) continue;
+    if(isNaN(quantity) || quantity <= 0) continue;
 
-    for (let i = 0; i < quantity; i++) {
-      if (availablePositions.length === 0) {
-        console.warn("No more allowed positions available to place seeds.");
-        return; // no more space
-      }
+    // For each plant group, cluster seeds together
 
-      // Pick random position from availablePositions
-      const posIndex = Math.floor(Math.random() * availablePositions.length);
-      const pos = availablePositions[posIndex];
+    // If no available positions, break early
+    if(availablePositions.length === 0) {
+      console.warn("No more allowed positions to place seeds.");
+      break;
+    }
 
-      // Remove that position so it can't be used again
-      availablePositions.splice(posIndex, 1);
+    // Pick a random starting center position from available positions
+    const centerIndex = Math.floor(Math.random() * availablePositions.length);
+    const centerPos = availablePositions[centerIndex];
 
-      // Draw seed circle
+    // Get cluster positions around center
+    const clusterPositions = getClusterPositions(centerPos, availablePositions, quantity);
+
+    // Draw seeds for this plant
+    for(let pos of clusterPositions) {
       ctx.fillStyle = "rgba(80, 172, 84, 0.85)";
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
       ctx.fill();
 
-      // Draw plant short label
       ctx.fillStyle = "black";
       ctx.font = "12px sans-serif";
       ctx.fillText(input.dataset.plant.slice(0, 3), pos.x - 10, pos.y - 12);
 
-      count++;
+      // Remove this position from availablePositions to avoid overlap
+      const index = availablePositions.indexOf(pos);
+      if(index > -1) availablePositions.splice(index, 1);
     }
   }
 }
