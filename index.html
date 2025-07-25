@@ -10,8 +10,14 @@
   <h1>Grow a Garden</h1>
   <div class="container">
     <div class="sidebar">
-      <input type="text" placeholder="Search plant..." id="plantSearch" autocomplete="off" />
-      <div id="suggestions" class="suggestion-box"></div>
+      <div class="search-bar">
+        <input type="text" placeholder="Search plant..." id="plantSearch" autocomplete="off" />
+        <button id="searchBtn">Search</button>
+      </div>
+      <div id="notFoundMsg" style="display:none; color:red; font-size: 0.9em; margin-bottom: 10px;">
+        No matching plants found.
+      </div>
+
       <button class="dark-toggle">🌙 Dark Mode</button>
       <div id="plantList" class="plant-list"></div>
       <button onclick="generateLayout()">Generate Layout</button>
