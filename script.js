@@ -38,7 +38,6 @@ function colorMatch(r1,g1,b1, r2,g2,b2, tolerance=10) {
   );
 }
 
-// Check if a pixel at (x,y) neighbors a forbidden color pixel
 function neighborsForbidden(x, y, imageData, width, height, forbiddenRgb, tolerance=10) {
   const data = imageData.data;
   const neighbors = [
@@ -131,38 +130,23 @@ function populatePlantList() {
   });
 }
 
-// Utility: find cluster positions near a given center (x,y)
-function getClusterPositions(center, availablePositions, quantity, radius = 20) {
-  const cluster = [];
+// Score a point based on surroundings (open radius, edge proximity)
+function scorePosition(pos, others, width, height) {
+  let score = 0;
 
-  // Sort available positions by distance to center
-  availablePositions.sort((a,b) => {
-    const da = (a.x - center.x)**2 + (a.y - center.y)**2;
-    const db = (b.x - center.x)**2 + (b.y - center.y)**2;
-    return da - db;
-  });
+  // Prefer center-ish placements
+  const dx = pos.x - width / 2;
+  const dy = pos.y - height / 2;
+  score -= Math.sqrt(dx*dx + dy*dy) * 0.05;
 
-  for (let pos of availablePositions) {
-    if(cluster.length >= quantity) break;
-
-    // Check if pos is within radius
-    const distSq = (pos.x - center.x)**2 + (pos.y - center.y)**2;
-    if(distSq <= radius*radius) {
-      cluster.push(pos);
-    }
+  // Prefer positions far from other seeds
+  for (let o of others) {
+    const dist = Math.sqrt((pos.x - o.x)**2 + (pos.y - o.y)**2);
+    if (dist < 30) score -= 100; // too close
+    else score += dist * 0.1;
   }
 
-  // If cluster is smaller than quantity, fill remaining anywhere available
-  if(cluster.length < quantity) {
-    for(let pos of availablePositions) {
-      if(cluster.length >= quantity) break;
-      if(!cluster.includes(pos)) {
-        cluster.push(pos);
-      }
-    }
-  }
-
-  return cluster;
+  return score;
 }
 
 function generateLayout() {
@@ -170,31 +154,36 @@ function generateLayout() {
   ctx.drawImage(bgImage, 0, 0);
 
   const inputs = document.querySelectorAll(".plant-item input[type='number']");
+  let available = allowedPositions.slice();
+  let placed = [];
 
-  // Copy allowed positions so we remove used positions as we go
-  let availablePositions = allowedPositions.slice();
+  for (let input of inputs) {
+    const qty = parseInt(input.value);
+    if (isNaN(qty) || qty <= 0) continue;
 
-  for(let input of inputs) {
-    const quantity = parseInt(input.value);
-    if(isNaN(quantity) || quantity <= 0) continue;
+    const plant = input.dataset.plant;
+    let bestCluster = [];
 
-    // For each plant group, cluster seeds together
+    // Try 50 different starting positions and pick best scoring cluster
+    for (let trial = 0; trial < 50; trial++) {
+      const center = available[Math.floor(Math.random() * available.length)];
+      const cluster = [];
 
-    // If no available positions, break early
-    if(availablePositions.length === 0) {
-      console.warn("No more allowed positions to place seeds.");
-      break;
+      for (let p of available) {
+        if (cluster.length >= qty) break;
+        const dist = Math.hypot(center.x - p.x, center.y - p.y);
+        if (dist <= 40) cluster.push(p);
+      }
+
+      // Score the entire cluster as a group
+      const totalScore = cluster.reduce((sum, pt) => sum + scorePosition(pt, placed, canvas.width, canvas.height), 0);
+      if (bestCluster.length === 0 || totalScore > bestCluster.score) {
+        bestCluster = cluster.slice();
+        bestCluster.score = totalScore;
+      }
     }
 
-    // Pick a random starting center position from available positions
-    const centerIndex = Math.floor(Math.random() * availablePositions.length);
-    const centerPos = availablePositions[centerIndex];
-
-    // Get cluster positions around center
-    const clusterPositions = getClusterPositions(centerPos, availablePositions, quantity);
-
-    // Draw seeds for this plant
-    for(let pos of clusterPositions) {
+    for (let pos of bestCluster) {
       ctx.fillStyle = "rgba(80, 172, 84, 0.85)";
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
@@ -202,11 +191,10 @@ function generateLayout() {
 
       ctx.fillStyle = "black";
       ctx.font = "12px sans-serif";
-      ctx.fillText(input.dataset.plant.slice(0, 3), pos.x - 10, pos.y - 12);
+      ctx.fillText(plant.slice(0, 3), pos.x - 10, pos.y - 12);
 
-      // Remove this position from availablePositions to avoid overlap
-      const index = availablePositions.indexOf(pos);
-      if(index > -1) availablePositions.splice(index, 1);
+      placed.push(pos);
+      available = available.filter(p => p !== pos);
     }
   }
 }
