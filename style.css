@@ -1,0 +1,219 @@
+/* Reset and base */
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f0f2f5;
+  color: #222;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+h1 {
+  text-align: center;
+  margin: 1.5rem 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.container {
+  display: flex;
+  max-width: 1000px;
+  width: 90%;
+  margin: 0 auto 3rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  overflow: hidden;
+  height: 600px;
+}
+
+.sidebar {
+  flex: 0 0 390px; /* increased from 320px */
+  padding: 2rem 1.5rem;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bbb transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 4px;
+}
+
+.sidebar input[type="text"] {
+  padding: 10px 15px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.25s ease;
+}
+.sidebar input[type="text"]:focus {
+  border-color: #888;
+  outline: none;
+  background: #fff;
+}
+
+.dark-toggle {
+  padding: 12px 0;
+  border: none;
+  border-radius: 8px;
+  background: #50ac54;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.dark-toggle:hover {
+  background: #7fe383;
+}
+
+.plant-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px; /* increased from 12px */
+  max-height: 350px;
+  overflow-y: auto;
+  overflow-x: hidden; /* no horizontal scroll */
+  word-break: break-word;
+}
+
+.plant-item {
+  display: flex;
+  align-items: center;
+  font-size: 1rem; /* increased from 0.9rem */
+  color: #444;
+  min-width: 0;
+}
+
+.plant-item label {
+  word-wrap: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
+  flex: 1;
+}
+
+.plant-item input[type="number"] {
+  width: 60px;
+  padding: 6px 8px;
+  margin-right: 8px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  text-align: center;
+  transition: border-color 0.25s ease;
+}
+.plant-item input[type="number"]:focus {
+  border-color: #888;
+  outline: none;
+  background: #fff;
+}
+
+button[onclick="generateLayout()"] {
+  margin-top: auto;
+  padding: 14px 0;
+  background: #50ac54;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+button[onclick="generateLayout()"]:hover {
+  background: #7fe383;
+}
+
+canvas {
+  flex-grow: 1;
+  background: white;
+  border-radius: 0 12px 12px 0;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.05);
+  border: none;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* DARK MODE */
+body.dark-mode {
+  background-color: #000;
+  color: #fff;
+}
+
+body.dark-mode h1 {
+  color: white;
+}
+
+body.dark-mode .container {
+  background: #111;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+body.dark-mode .sidebar {
+  background-color: #121212;
+  border-right: 1px solid #444;
+  color: #fff;
+  overflow-y: auto;
+  scrollbar-color: #555 transparent;
+}
+
+body.dark-mode .sidebar::-webkit-scrollbar-thumb {
+  background-color: #555;
+}
+
+body.dark-mode input[type="text"],
+body.dark-mode input[type="number"] {
+  background-color: #1a1a1a;
+  border-color: #555;
+  color: #fff;
+}
+
+body.dark-mode input[type="text"]:focus,
+body.dark-mode input[type="number"]:focus {
+  border-color: #888;
+  background-color: #222;
+  color: #fff;
+}
+
+body.dark-mode .plant-item {
+  color: #ddd;
+}
+
+body.dark-mode .dark-toggle {
+  background: white;
+  color: black;
+  border: none;
+}
+body.dark-mode .dark-toggle:hover {
+  background: white;
+}
+
+body.dark-mode button[onclick="generateLayout()"] {
+  background: white;
+  color: black;
+  border: none;
+}
+body.dark-mode button[onclick="generateLayout()"]:hover {
+  background: white;
+}
+
+body.dark-mode canvas {
+  background-color: #1a1a1a;
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.05);
+  border-radius: 0 12px 12px 0;
+}
