@@ -11,24 +11,27 @@ const ctx = canvas.getContext("2d");
 const darkToggle = document.querySelector(".dark-toggle");
 const body = document.body;
 const searchInput = document.getElementById("plantSearch");
-const suggestionsBox = document.getElementById("suggestions");
 const plantListDiv = document.getElementById("plantList");
 
 const allowedHex = "#ab6b3f";
-const forbiddenHex = "#7a4427";
+const forbiddenHexes = [
+  "#7a4427", "#543410", "#643415", "#6c3414", "#642c13",
+  "#6c341c", "#6c2c14", "#64240c", "#6c3c10", "#6c3418"
+];
 
 let allowedPositions = [];
 
 function hexToRgb(hex) {
-  const bigint = parseInt(hex.replace("#",""), 16);
+  const bigint = parseInt(hex.replace("#", ""), 16);
   return {
     r: (bigint >> 16) & 255,
     g: (bigint >> 8) & 255,
     b: bigint & 255,
   };
 }
+
 const allowedRgb = hexToRgb(allowedHex);
-const forbiddenRgb = hexToRgb(forbiddenHex);
+const forbiddenRgbs = forbiddenHexes.map(hexToRgb);
 
 function colorMatch(r1, g1, b1, r2, g2, b2, tolerance = 10) {
   return (
@@ -38,8 +41,11 @@ function colorMatch(r1, g1, b1, r2, g2, b2, tolerance = 10) {
   );
 }
 
-// ⛔️ Increase forbidden padding radius (3px or more)
-function nearForbidden(x, y, imageData, width, height, forbiddenRgb, padding = 3) {
+function isForbiddenColor(r, g, b) {
+  return forbiddenRgbs.some(f => colorMatch(r, g, b, f.r, f.g, f.b));
+}
+
+function nearForbidden(x, y, imageData, width, height, padding = 3) {
   const data = imageData.data;
   for (let dy = -padding; dy <= padding; dy++) {
     for (let dx = -padding; dx <= padding; dx++) {
@@ -50,7 +56,7 @@ function nearForbidden(x, y, imageData, width, height, forbiddenRgb, padding = 3
       const r = data[idx];
       const g = data[idx + 1];
       const b = data[idx + 2];
-      if (colorMatch(r, g, b, forbiddenRgb.r, forbiddenRgb.g, forbiddenRgb.b)) {
+      if (isForbiddenColor(r, g, b)) {
         return true;
       }
     }
@@ -76,7 +82,7 @@ bgImage.onload = () => {
       const b = imageData.data[idx + 2];
 
       if (colorMatch(r, g, b, allowedRgb.r, allowedRgb.g, allowedRgb.b)) {
-        if (!nearForbidden(x, y, imageData, canvas.width, canvas.height, forbiddenRgb, 3)) {
+        if (!nearForbidden(x, y, imageData, canvas.width, canvas.height, 3)) {
           allowedPositions.push({ x, y });
         }
       }
@@ -90,20 +96,11 @@ darkToggle.addEventListener("click", () => {
 
 searchInput.addEventListener("input", () => {
   const query = searchInput.value.toLowerCase();
-  suggestionsBox.innerHTML = "";
+  const items = plantListDiv.querySelectorAll(".plant-item");
 
-  if (!query) return;
-
-  const matches = plantData.filter(p => p.toLowerCase().includes(query));
-  matches.forEach(match => {
-    const div = document.createElement("div");
-    div.className = "suggestion";
-    div.textContent = match;
-    div.onclick = () => {
-      searchInput.value = match;
-      suggestionsBox.innerHTML = "";
-    };
-    suggestionsBox.appendChild(div);
+  items.forEach(item => {
+    const label = item.querySelector("label").textContent.toLowerCase();
+    item.style.display = label.includes(query) ? "flex" : "none";
   });
 });
 
@@ -128,7 +125,6 @@ function populatePlantList() {
   });
 }
 
-// 🧠 AI logic: Score placement quality
 function scorePosition(pos, others, width, height) {
   let score = 0;
   const dx = pos.x - width / 2;
@@ -137,14 +133,13 @@ function scorePosition(pos, others, width, height) {
 
   for (let o of others) {
     const dist = Math.sqrt((pos.x - o.x) ** 2 + (pos.y - o.y) ** 2);
-    if (dist < 35) score -= 999; // too close
+    if (dist < 35) score -= 999;
     else score += dist * 0.1;
   }
 
   return score;
 }
 
-// 👨‍🌾 Generate AI-optimized layout
 function generateLayout() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImage, 0, 0);
