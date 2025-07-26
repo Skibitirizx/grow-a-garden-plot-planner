@@ -15,13 +15,15 @@ const plantListDiv = document.getElementById("plantList");
 
 let plotBoxes = [];
 
+// Load garden layout background
 const bgImage = new Image();
-bgImage.src = "garden-layout.png"; // Replace with your file if needed
+bgImage.src = "garden-layout.png"; // Change if using a different image
 bgImage.onload = () => {
   canvas.width = bgImage.width;
   canvas.height = bgImage.height;
   ctx.drawImage(bgImage, 0, 0);
 
+  // Define static plot positions (adjust if image changes)
   const boxWidth = 150;
   const boxHeight = 130;
   const startX = 185;
@@ -92,19 +94,28 @@ function generateLayout() {
 
   for (let plant of plantsToPlace) {
     const total = plant.quantity;
-
     let placed = 0;
+
     while (placed < total && boxIndex < plotBoxes.length) {
       const box = plotBoxes[boxIndex];
+
+      const padding = 20; // Keep away from borders
+      const availableWidth = box.width - padding * 2;
+      const availableHeight = box.height - padding * 2;
+
       const cols = Math.ceil(Math.sqrt(total));
       const rows = Math.ceil(total / cols);
-      const spacingX = box.width / (cols + 1);
-      const spacingY = box.height / (rows + 1);
 
-      for (let row = 1; row <= rows && placed < total; row++) {
-        for (let col = 1; col <= cols && placed < total; col++) {
-          const x = box.x + spacingX * col;
-          const y = box.y + spacingY * row;
+      const spacingX = availableWidth / Math.max(cols, 1);
+      const spacingY = availableHeight / Math.max(rows, 1);
+
+      const startX = box.x + box.width / 2 - (spacingX * (cols - 1)) / 2;
+      const startY = box.y + box.height / 2 - (spacingY * (rows - 1)) / 2;
+
+      for (let row = 0; row < rows && placed < total; row++) {
+        for (let col = 0; col < cols && placed < total; col++) {
+          const x = startX + col * spacingX;
+          const y = startY + row * spacingY;
 
           ctx.fillStyle = "rgba(80, 172, 84, 0.85)";
           ctx.beginPath();
