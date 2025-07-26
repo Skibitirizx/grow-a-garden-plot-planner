@@ -13,7 +13,7 @@ const body = document.body;
 const searchInput = document.getElementById("plantSearch");
 const plantListDiv = document.getElementById("plantList");
 
-const allowedHex = "#ab6b3f";
+const allowedHex = "#ab6b3f"; // Light brown
 const forbiddenHexes = [
   "#7a4427", "#543410", "#643415", "#6c3414", "#642c13",
   "#6c341c", "#6c2c14", "#64240c", "#6c3c10", "#6c3418"
@@ -65,7 +65,7 @@ function nearForbidden(x, y, imageData, width, height, padding = 3) {
 }
 
 const bgImage = new Image();
-bgImage.src = "garden-layout.png";
+bgImage.src = "garden-layout.png"; // Replace with your image
 bgImage.onload = () => {
   canvas.width = bgImage.width;
   canvas.height = bgImage.height;
@@ -82,7 +82,14 @@ bgImage.onload = () => {
       const b = imageData.data[idx + 2];
 
       if (colorMatch(r, g, b, allowedRgb.r, allowedRgb.g, allowedRgb.b)) {
-        if (!nearForbidden(x, y, imageData, canvas.width, canvas.height, 3)) {
+        const margin = 5;
+        if (
+          x > margin &&
+          y > margin &&
+          x < canvas.width - margin &&
+          y < canvas.height - margin &&
+          !nearForbidden(x, y, imageData, canvas.width, canvas.height, 3)
+        ) {
           allowedPositions.push({ x, y });
         }
       }
@@ -180,9 +187,10 @@ function generateLayout() {
       ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "black";
-      ctx.font = "12px sans-serif";
-      ctx.fillText(plant.slice(0, 3), pos.x - 10, pos.y - 12);
+      ctx.fillStyle = "#337733";
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(plant, pos.x, pos.y + 4);
 
       placed.push(pos);
       available = available.filter(p => p !== pos);
